@@ -1,0 +1,1525 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CivicPulse RESTful API",
+    "description": "API documentation for the CivicPulse backend. Access all endpoints for authentication, users, students, teachers, classes, activities, academic scores, and learning materials.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Development Server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "summary": "User Registration",
+        "description": "Creates a new student or teacher account and returns an authentication token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "password_confirmation"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 2, "maxLength": 255 },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 },
+                  "password_confirmation": { "type": "string" },
+                  "role": { "type": "string", "enum": ["student", "teacher"], "default": "student" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string", "maxLength": 500 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "User registered successfully" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": { "$ref": "#/components/schemas/User" },
+                        "token": { "type": "string" },
+                        "token_type": { "type": "string", "example": "Bearer" },
+                        "expires_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "User Login",
+        "description": "Authenticates a user and returns an access token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "remember_me": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Login successful" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": { "$ref": "#/components/schemas/User" },
+                        "token": { "type": "string" },
+                        "token_type": { "type": "string", "example": "Bearer" },
+                        "expires_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "Invalid credentials" },
+                    "error_code": { "type": "string", "example": "INVALID_CREDENTIALS" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "User Logout",
+        "description": "Invalidates the current authentication token.",
+        "responses": {
+          "200": {
+            "description": "Successfully logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Successfully logged out" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Token Refresh",
+        "description": "Refreshes the current authentication token.",
+        "responses": {
+          "200": {
+            "description": "Successfully refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Token refreshed successfully" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "token": { "type": "string" },
+                        "token_type": { "type": "string", "example": "Bearer" },
+                        "expires_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "Authenticated User (Auth)",
+        "description": "Retrieves the current user's direct details.",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "User profile retrieved successfully" },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" }
+        }
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "summary": "Authenticated User Profile",
+        "description": "Retrieves the current user's profile details.",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "User profile retrieved successfully" },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" }
+        }
+      }
+    },
+    "/api/v1/students": {
+      "get": {
+        "summary": "List Students",
+        "description": "Get a list of student users. Supports search, sort, filter, and pagination.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" },
+          { "$ref": "#/components/parameters/Sort" },
+          { "$ref": "#/components/parameters/Order" },
+          { "$ref": "#/components/parameters/Search" },
+          {
+            "name": "filter[class_id]",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "Filter by class ID"
+          },
+          {
+            "name": "filter[status]",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["active", "inactive"] },
+            "description": "Filter by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of students",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Students retrieved successfully" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Student" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/Meta" },
+                    "links": { "$ref": "#/components/schemas/Links" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" }
+        }
+      },
+      "post": {
+        "summary": "Create Student",
+        "description": "Creates a new student user and registers them to a class.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 2 },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string" },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string", "enum": ["male", "female"] },
+                  "class_id": { "type": "integer" },
+                  "parent_name": { "type": "string" },
+                  "parent_phone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Student created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Student created successfully" },
+                    "data": { "$ref": "#/components/schemas/Student" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/students/{id}": {
+      "get": {
+        "summary": "Show Student Details",
+        "description": "Get complete profile, class info, activities, and scores for a specific student.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student details retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Student retrieved successfully" },
+                    "data": { "$ref": "#/components/schemas/StudentDetail" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "summary": "Full Update Student",
+        "description": "Replaces all fields for a student resource.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string" },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string", "enum": ["male", "female"] },
+                  "class_id": { "type": "integer" },
+                  "parent_name": { "type": "string" },
+                  "parent_phone": { "type": "string" },
+                  "status": { "type": "string", "enum": ["active", "inactive"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Student updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Student updated successfully" },
+                    "data": { "$ref": "#/components/schemas/Student" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      },
+      "patch": {
+        "summary": "Partial Update Student",
+        "description": "Updates only specified fields for a student resource.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string" },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string", "enum": ["male", "female"] },
+                  "class_id": { "type": "integer" },
+                  "parent_name": { "type": "string" },
+                  "parent_phone": { "type": "string" },
+                  "status": { "type": "string", "enum": ["active", "inactive"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Student updated partially",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Student updated successfully" },
+                    "data": { "$ref": "#/components/schemas/Student" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "summary": "Delete Student",
+        "description": "Soft deletes a student (or force deletes if `force=true` query parameter is provided). Fails with 409 if student has dependencies (activities or scores).",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          {
+            "name": "force",
+            "in": "query",
+            "schema": { "type": "boolean", "default": false },
+            "description": "Set to true to force delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Student deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/students/{id}/restore": {
+      "post": {
+        "summary": "Restore Student",
+        "description": "Restores a soft-deleted student user.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Student restored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Student restored successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/teachers": {
+      "get": {
+        "summary": "List Teachers",
+        "description": "Get a list of teacher users.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" },
+          { "$ref": "#/components/parameters/Sort" },
+          { "$ref": "#/components/parameters/Order" },
+          { "$ref": "#/components/parameters/Search" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Teachers retrieved successfully" },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Teacher" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/Meta" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Teacher",
+        "description": "Creates a new teacher account.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string" },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string", "enum": ["male", "female"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Teacher created successfully" },
+                    "data": { "$ref": "#/components/schemas/Teacher" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/teachers/{id}": {
+      "get": {
+        "summary": "Show Teacher Details",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Teacher" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Teacher",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string" },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string" },
+                  "status": { "type": "string", "enum": ["active", "inactive"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Teacher updated successfully" },
+                    "data": { "$ref": "#/components/schemas/Teacher" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Teacher",
+        "description": "Fails with 409 if teacher is assigned as homeroom teacher to classes.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/classes": {
+      "get": {
+        "summary": "List Classes",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" },
+          { "$ref": "#/components/parameters/Search" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/SchoolClass" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Class",
+        "description": "Creates a school class. Auto-generates `class_code` if omitted.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "grade"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "grade": { "type": "integer" },
+                  "homeroom_teacher_id": { "type": "integer" },
+                  "class_code": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/SchoolClass" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/classes/{id}": {
+      "get": {
+        "summary": "Show Class Details",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/SchoolClass" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Class",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "grade"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "grade": { "type": "integer" },
+                  "homeroom_teacher_id": { "type": "integer" },
+                  "class_code": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/SchoolClass" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Class",
+        "description": "Fails with 409 if class has enrolled students.",
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" }
+        ],
+        "responses": {
+          "200": { "description": "Deleted" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/activities": {
+      "get": {
+        "summary": "List Activities",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" },
+          { "$ref": "#/components/parameters/Search" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Activity" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit Activity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["student_id", "title", "type", "date"],
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "title": { "type": "string", "minLength": 3 },
+                  "description": { "type": "string" },
+                  "type": { "type": "string", "enum": ["competition", "sports", "arts", "volunteer", "other"] },
+                  "date": { "type": "string", "format": "date" },
+                  "location": { "type": "string" },
+                  "achievement": { "type": "string" },
+                  "points": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "evidence_url": { "type": "string", "format": "uri" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Activity" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/activities/{id}": {
+      "get": {
+        "summary": "Show Activity details",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Activity" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Activity",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["student_id", "title", "type", "date"],
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "type": { "type": "string", "enum": ["competition", "sports", "arts", "volunteer", "other"] },
+                  "date": { "type": "string", "format": "date" },
+                  "location": { "type": "string" },
+                  "achievement": { "type": "string" },
+                  "points": { "type": "integer" },
+                  "evidence_url": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Activity" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Activity",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "responses": {
+          "200": { "description": "Deleted" }
+        }
+      }
+    },
+    "/api/v1/activities/{id}/status": {
+      "patch": {
+        "summary": "Approve/Reject Activity Status",
+        "description": "Restricted to Homeroom/Subject Teachers. Updates activity validation state.",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                  "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+                  "review_notes": { "type": "string", "maxLength": 500 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Activity status updated successfully" },
+                    "data": { "$ref": "#/components/schemas/Activity" }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/v1/scores": {
+      "get": {
+        "summary": "List Academic Scores",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Score" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Record Student Score",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["student_id", "learning_material_id", "type", "score"],
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "learning_material_id": { "type": "integer" },
+                  "type": { "type": "string", "enum": ["pre_test", "post_test"] },
+                  "score": { "type": "integer", "minimum": 0, "maximum": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Score" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scores/{id}": {
+      "get": {
+        "summary": "Show Score details",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Score" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Score",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["student_id", "learning_material_id", "type", "score"],
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "learning_material_id": { "type": "integer" },
+                  "type": { "type": "string", "enum": ["pre_test", "post_test"] },
+                  "score": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Score" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Score",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "responses": {
+          "200": { "description": "Deleted" }
+        }
+      }
+    },
+    "/api/v1/materials": {
+      "get": {
+        "summary": "List Learning Materials",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/PerPage" },
+          { "$ref": "#/components/parameters/Search" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Material" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Material",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description", "grade", "file_url"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "grade": { "type": "integer" },
+                  "file_url": { "type": "string", "format": "uri" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Material" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/materials/{id}": {
+      "get": {
+        "summary": "Show Material details",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Material" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Material",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description", "grade", "file_url"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "grade": { "type": "integer" },
+                  "file_url": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Material" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Material",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "responses": {
+          "200": { "description": "Deleted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Validation Failed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "message": { "type": "string", "example": "The given data was invalid" },
+                "error_code": { "type": "string", "example": "VALIDATION_FAILED" },
+                "errors": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthenticated": {
+        "description": "Unauthenticated access",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "message": { "type": "string", "example": "Unauthenticated" },
+                "error_code": { "type": "string", "example": "UNAUTHENTICATED" }
+              }
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden access",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "message": { "type": "string", "example": "You do not have permission to access this resource" },
+                "error_code": { "type": "string", "example": "FORBIDDEN" }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "message": { "type": "string", "example": "Resource not found" },
+                "error_code": { "type": "string", "example": "RESOURCE_NOT_FOUND" }
+              }
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Resource has dependent records and cannot be deleted",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "message": { "type": "string", "example": "Cannot delete resource due to existing relationships" },
+                "error_code": { "type": "string", "example": "RESOURCE_HAS_DEPENDENCIES" },
+                "dependencies": {
+                  "type": "array",
+                  "items": { "type": "string", "example": "activities" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "integer" },
+        "description": "The unique resource identifier"
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "schema": { "type": "integer", "default": 1 },
+        "description": "Page number for pagination"
+      },
+      "PerPage": {
+        "name": "per_page",
+        "in": "query",
+        "schema": { "type": "integer", "default": 15 },
+        "description": "Items per page (max: 100)"
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "schema": { "type": "string", "default": "created_at" },
+        "description": "Field to sort by"
+      },
+      "Order": {
+        "name": "order",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" },
+        "description": "Sorting direction"
+      },
+      "Search": {
+        "name": "search",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Full-text search query across allowed columns"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string" },
+          "phone": { "type": "string", "nullable": true },
+          "address": { "type": "string", "nullable": true },
+          "avatar": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Student": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string", "example": "student" },
+          "status": { "type": "string", "example": "active" },
+          "class_id": { "type": "integer", "nullable": true },
+          "class_name": { "type": "string", "nullable": true },
+          "phone": { "type": "string", "nullable": true },
+          "avatar": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "StudentDetail": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string" },
+          "status": { "type": "string" },
+          "phone": { "type": "string", "nullable": true },
+          "address": { "type": "string", "nullable": true },
+          "avatar": { "type": "string", "nullable": true },
+          "date_of_birth": { "type": "string", "format": "date", "nullable": true },
+          "gender": { "type": "string", "nullable": true },
+          "parent_name": { "type": "string", "nullable": true },
+          "parent_phone": { "type": "string", "nullable": true },
+          "class": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "grade": { "type": "integer" },
+              "homeroom_teacher": { "type": "string" }
+            }
+          },
+          "activities": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Activity" }
+          },
+          "scores": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Score" }
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Teacher": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string", "example": "teacher" },
+          "status": { "type": "string" },
+          "phone": { "type": "string", "nullable": true },
+          "address": { "type": "string", "nullable": true },
+          "date_of_birth": { "type": "string", "format": "date", "nullable": true },
+          "gender": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SchoolClass": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "grade": { "type": "integer" },
+          "class_code": { "type": "string" },
+          "homeroom_teacher": { "type": "string" }
+        }
+      },
+      "Activity": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "student_id": { "type": "integer" },
+          "student_name": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "type": { "type": "string" },
+          "date": { "type": "string", "format": "date" },
+          "location": { "type": "string", "nullable": true },
+          "achievement": { "type": "string", "nullable": true },
+          "points": { "type": "integer" },
+          "status": { "type": "string" },
+          "evidence_url": { "type": "string", "nullable": true },
+          "review_notes": { "type": "string", "nullable": true },
+          "reviewed_by": { "type": "integer", "nullable": true },
+          "reviewed_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Score": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "subject": { "type": "string" },
+          "score": { "type": "integer" },
+          "grade": { "type": "string", "example": "A" },
+          "semester": { "type": "string" }
+        }
+      },
+      "Material": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "grade": { "type": "integer" },
+          "file_url": { "type": "string" },
+          "creator": { "type": "string" }
+        }
+      },
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "current_page": { "type": "integer" },
+          "per_page": { "type": "integer" },
+          "total": { "type": "integer" },
+          "last_page": { "type": "integer" },
+          "from": { "type": "integer" },
+          "to": { "type": "integer" }
+        }
+      },
+      "Links": {
+        "type": "object",
+        "properties": {
+          "first": { "type": "string" },
+          "last": { "type": "string" },
+          "prev": { "type": "string", "nullable": true },
+          "next": { "type": "string", "nullable": true }
+        }
+      }
+    }
+  }
+}
