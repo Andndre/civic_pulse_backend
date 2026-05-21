@@ -43,6 +43,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         // Teachers CRUD
         Route::apiResource('teachers', TeacherController::class);
 
+        // Classes: Join & Leave
+        Route::post('/classes/join', [ClassController::class, 'join'])->middleware('role:student');
+        Route::delete('/classes/{class}/leave', [ClassController::class, 'leave'])->middleware('role:student');
+
         // Classes CRUD
         Route::apiResource('classes', ClassController::class);
 

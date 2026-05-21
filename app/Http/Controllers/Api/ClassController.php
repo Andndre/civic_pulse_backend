@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Traits\AppliesQueryOptions;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\JoinClassRequest;
 use App\Http\Requests\StoreClassRequest;
 use App\Http\Requests\UpdateClassRequest;
 use App\Http\Resources\ClassResource;
@@ -135,6 +136,78 @@ class ClassController extends Controller
             'data' => [
                 'id' => $classId,
                 'deleted_at' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Join a class using a class code.
+     */
+    public function join(JoinClassRequest $request): JsonResponse
+    {
+        $student = $request->user();
+
+        $class = SchoolClass::where('class_code', $request->class_code)->first();
+
+        if (! $class) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class not found',
+                'error_code' => 'RESOURCE_NOT_FOUND',
+            ], 404);
+        }
+
+        if ($student->classes()->where('class_id', $class->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have already joined this class',
+                'error_code' => 'ALREADY_JOINED',
+            ], 409);
+        }
+
+        $student->classes()->attach($class->id, [
+            'grade' => $class->grade,
+        ]);
+
+        $class->load('homeroomTeacher');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully joined the class',
+            'data' => new ClassResource($class),
+        ]);
+    }
+
+    /**
+     * Leave a class.
+     */
+    public function leave(Request $request, SchoolClass $class): JsonResponse
+    {
+        $student = $request->user();
+
+        if ($student->role !== 'student') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only students can leave a class',
+                'error_code' => 'FORBIDDEN',
+            ], 403);
+        }
+
+        if (! $student->classes()->where('class_id', $class->id)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not a member of this class',
+                'error_code' => 'NOT_A_MEMBER',
+            ], 404);
+        }
+
+        $student->classes()->detach($class->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully left the class',
+            'data' => [
+                'class_id' => $class->id,
             ],
         ]);
     }
