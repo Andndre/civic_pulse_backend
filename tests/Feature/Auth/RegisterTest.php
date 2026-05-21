@@ -59,7 +59,7 @@ class RegisterTest extends TestCase
         $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'The given data was invalid',
             ]);
     }
 
@@ -75,7 +75,7 @@ class RegisterTest extends TestCase
         $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'The given data was invalid',
             ]);
     }
 
