@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::prefix('v1')->group(function () {
         // User profile
         Route::get('/users/me', [UserController::class, 'me']);
+        Route::patch('/users/me', [UserController::class, 'update']);
 
         // Students CRUD, Restore
         Route::post('/students/{student}/restore', [StudentController::class, 'restore']);

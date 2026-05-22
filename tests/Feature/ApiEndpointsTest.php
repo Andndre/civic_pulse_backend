@@ -7,6 +7,8 @@ use App\Models\LearningMaterial;
 use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -69,6 +71,36 @@ class ApiEndpointsTest extends TestCase
                 'message' => 'User profile retrieved successfully',
             ])
             ->assertJsonPath('data.email', 'john.doe@example.com');
+
+        // 3a. Update Profile
+        Storage::fake('public');
+        $avatarFile = UploadedFile::fake()->image('avatar.jpg');
+
+        $updateResponse = $this->withHeaders([
+            'Authorization' => 'Bearer '.$token,
+        ])->patchJson('/api/v1/users/me', [
+            'name' => 'John Doe Updated',
+            'phone' => '+628999999999',
+            'address' => 'Jl. Baru No. 456',
+            'avatar_file' => $avatarFile,
+        ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+            ])
+            ->assertJsonPath('data.name', 'John Doe Updated')
+            ->assertJsonPath('data.phone', '+628999999999')
+            ->assertJsonPath('data.address', 'Jl. Baru No. 456');
+
+        $updatedAvatar = $updateResponse->json('data.avatar');
+        $this->assertNotNull($updatedAvatar);
+        $this->assertStringContainsString('storage/avatars/', $updatedAvatar);
+
+        $avatarPath = str_replace(asset('storage/'), '', $updatedAvatar);
+        $avatarPath = str_replace('storage/', '', $avatarPath);
+        Storage::disk('public')->assertExists($avatarPath);
 
         // 4. Token Refresh
         $refreshResponse = $this->withHeaders([
@@ -442,5 +474,62 @@ class ApiEndpointsTest extends TestCase
         $deleteResponse = $this->deleteJson("/api/v1/materials/{$materialId}");
         $deleteResponse->assertStatus(200)
             ->assertJsonPath('message', 'Material deleted successfully');
+    }
+
+    /**
+     * Test Activity File Upload and Update.
+     */
+    public function test_activity_file_upload_and_update(): void
+    {
+        Storage::fake('public');
+
+        $student = User::factory()->create(['role' => 'student']);
+        Sanctum::actingAs($student);
+
+        // 1. Create Activity with File Upload
+        $file = UploadedFile::fake()->image('evidence.png');
+
+        $storeResponse = $this->postJson('/api/v1/activities', [
+            'student_id' => $student->id,
+            'title' => 'Sports Day Medal',
+            'description' => 'Won gold in 100m sprint',
+            'type' => 'sports',
+            'date' => '2026-05-18',
+            'location' => 'School Field',
+            'achievement' => 'Gold Medal',
+            'points' => 50,
+            'evidence_file' => $file,
+        ]);
+
+        $storeResponse->assertStatus(201)
+            ->assertJsonPath('data.title', 'Sports Day Medal')
+            ->assertJsonStructure(['data' => ['evidence_url']]);
+
+        $activityId = $storeResponse->json('data.id');
+        $storedUrl = $storeResponse->json('data.evidence_url');
+
+        $this->assertNotNull($storedUrl);
+        $this->assertStringContainsString('storage/evidence/', $storedUrl);
+
+        // Assert file exists on fake disk
+        $path = strstr($storedUrl, 'evidence/');
+        Storage::disk('public')->assertExists($path);
+
+        // 2. Update Activity (PATCH) with a new File Upload
+        $newFile = UploadedFile::fake()->create('certificate.pdf', 500, 'application/pdf');
+
+        $patchResponse = $this->patchJson("/api/v1/activities/{$activityId}", [
+            'title' => 'Sports Day Medal Updated',
+            'evidence_file' => $newFile,
+        ]);
+
+        $patchResponse->assertStatus(200)
+            ->assertJsonPath('data.title', 'Sports Day Medal Updated');
+
+        $updatedUrl = $patchResponse->json('data.evidence_url');
+        $this->assertNotEquals($storedUrl, $updatedUrl);
+
+        $newPath = strstr($updatedUrl, 'evidence/');
+        Storage::disk('public')->assertExists($newPath);
     }
 }

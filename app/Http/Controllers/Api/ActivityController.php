@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Traits\AppliesQueryOptions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActivityRequest;
+use App\Http\Requests\UpdateActivityRequest;
 use App\Http\Requests\UpdateActivityStatusRequest;
 use App\Http\Resources\ActivityResource;
 use App\Models\ActivityLog;
@@ -37,6 +38,13 @@ class ActivityController extends Controller
      */
     public function store(StoreActivityRequest $request): JsonResponse
     {
+        $evidenceUrl = $request->evidence_url;
+
+        if ($request->hasFile('evidence_file')) {
+            $path = $request->file('evidence_file')->store('evidence', 'public');
+            $evidenceUrl = asset('storage/'.$path);
+        }
+
         $activity = ActivityLog::create([
             'student_id' => $request->student_id,
             'title' => $request->title,
@@ -46,7 +54,7 @@ class ActivityController extends Controller
             'location' => $request->location,
             'achievement' => $request->achievement,
             'points' => $request->points ?? 0,
-            'evidence_url' => $request->evidence_url,
+            'evidence_url' => $evidenceUrl,
             'status' => 'pending',
         ]);
 
@@ -68,6 +76,37 @@ class ActivityController extends Controller
             'success' => true,
             'message' => 'Activity retrieved successfully',
             'data' => new ActivityResource($activity),
+        ]);
+    }
+
+    /**
+     * Update the specified activity.
+     */
+    public function update(UpdateActivityRequest $request, ActivityLog $activity): JsonResponse
+    {
+        $data = $request->only([
+            'student_id',
+            'title',
+            'description',
+            'type',
+            'date',
+            'location',
+            'achievement',
+            'points',
+            'evidence_url',
+        ]);
+
+        if ($request->hasFile('evidence_file')) {
+            $path = $request->file('evidence_file')->store('evidence', 'public');
+            $data['evidence_url'] = asset('storage/'.$path);
+        }
+
+        $activity->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Activity updated successfully',
+            'data' => new ActivityResource($activity->load('student')),
         ]);
     }
 

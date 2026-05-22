@@ -300,6 +300,122 @@ Authorization: Bearer {token}
 
 ---
 
+### 2.5 Get Authenticated User Profile
+
+Retrieves the profile of the currently logged-in user.
+
+**URL:** `/api/v1/users/me`  
+**Method:** `GET`  
+**Authentication:** Required (Bearer Token)
+
+#### Success Response (HTTP 200)
+
+```json
+{
+    "success": true,
+    "message": "User profile retrieved successfully",
+    "data": {
+        "id": 1,
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "role": "student",
+        "phone": "+6281234567890",
+        "address": "Jl. Sudirman No. 123, Jakarta",
+        "avatar": "http://localhost:8000/storage/avatars/abc.png",
+        "date_of_birth": "2008-03-15",
+        "gender": "male",
+        "parent_name": "Robert Doe",
+        "parent_phone": "+6281234567891",
+        "status": "active",
+        "email_verified_at": "2026-05-18T10:30:00.000000Z",
+        "created_at": "2026-05-18T10:30:00.000000Z",
+        "updated_at": "2026-05-18T10:30:00.000000Z"
+    }
+}
+```
+
+#### Error Response - Unauthenticated (HTTP 401)
+
+```json
+{
+    "success": false,
+    "message": "Unauthenticated",
+    "error_code": "UNAUTHENTICATED"
+}
+```
+
+---
+
+### 2.6 Update Authenticated User Profile
+
+Updates the profile details and/or avatar of the currently logged-in user.
+
+**URL:** `/api/v1/users/me`  
+**Method:** `PATCH` (For JSON request body) or `POST` with `_method=PATCH` (For Multipart Form-Data if uploading an avatar)  
+**Authentication:** Required (Bearer Token)
+
+> [!NOTE]
+> When uploading an avatar via `multipart/form-data`, PHP does not natively parse multipart payloads on `PATCH` requests. Send a `POST` request to `/api/v1/users/me` with `_method=PATCH` either in the form parameters or headers.
+
+#### Request Parameters
+
+| Field | Type | Required | Validation Rules |
+|-------|------|----------|------------------|
+| name | string | No | Min: 2 chars, Max: 255 chars |
+| email | string | No | Valid email, unique (except current user) |
+| password | string | No | Min: 8 chars, must contain at least one uppercase letter, one lowercase letter, and one number |
+| password_confirmation | string | Required if password sent | Must match password |
+| phone | string | No | Max: 20 chars |
+| address | string | No | Max: 500 chars |
+| date_of_birth | date | No | Date format: YYYY-MM-DD, must be today or in the past |
+| gender | string | No | Enum: `male`, `female` |
+| parent_name | string | No | Max: 255 chars |
+| parent_phone | string | No | Max: 20 chars |
+| avatar_file | file | No | Valid image (jpeg, png, jpg, gif, svg), max: 2048 KB |
+
+#### Success Response (HTTP 200)
+
+```json
+{
+    "success": true,
+    "message": "Profile updated successfully",
+    "data": {
+        "id": 1,
+        "name": "John Doe Updated",
+        "email": "john.doe@example.com",
+        "role": "student",
+        "phone": "+628999999999",
+        "address": "Jl. Baru No. 456",
+        "avatar": "http://localhost:8000/storage/avatars/def.png",
+        "date_of_birth": "2008-03-15",
+        "gender": "male",
+        "parent_name": "Robert Doe",
+        "parent_phone": "+6281234567891",
+        "status": "active",
+        "email_verified_at": "2026-05-18T10:30:00.000000Z",
+        "created_at": "2026-05-18T10:30:00.000000Z",
+        "updated_at": "2026-05-22T14:30:00.000000Z"
+    }
+}
+```
+
+#### Error Response - Validation Failed (HTTP 422)
+
+```json
+{
+    "success": false,
+    "message": "Validation failed",
+    "errors": {
+        "avatar_file": [
+            "The avatar file must be an image.",
+            "The avatar file must be a file of type: jpeg, png, jpg, gif, svg."
+        ]
+    }
+}
+```
+
+---
+
 ## 3. Resource Endpoints - GET
 
 ### 3.1 Get All Resources
@@ -608,6 +724,10 @@ Creates a new resource with the provided data.
 | achievement | string | No | Max: 255 chars |
 | points | integer | No | Min: 0, Max: 100 |
 | evidence_url | url | No | Valid URL format |
+| evidence_file | file | No | Valid file (jpeg, png, jpg, gif, svg, pdf), max: 2048 KB |
+
+> [!NOTE]
+> If submitting or updating an activity with `evidence_file`, ensure you use `multipart/form-data`. When using `PATCH` / `PUT` to update an activity with a file upload, use `POST` with `_method=PATCH` or `_method=PUT` to bypass PHP's native limitation of parsing multipart requests on non-POST methods.
 
 #### Success Response (HTTP 201)
 
@@ -1829,6 +1949,7 @@ Route::middleware(['throttle:5,1', 'withoutThrottling:critical'])->group(functio
 | POST | /api/v1/auth/logout | User logout | Yes |
 | POST | /api/v1/auth/refresh | Refresh token | Yes |
 | GET | /api/v1/users/me | Get current user | Yes |
+| PATCH | /api/v1/users/me | Update current user profile | Yes |
 | GET | /api/v1/students | List all students | Yes |
 | GET | /api/v1/students/{id} | Get student by ID | Yes |
 | POST | /api/v1/students | Create student | Yes |

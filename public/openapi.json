@@ -233,6 +233,69 @@
           },
           "401": { "$ref": "#/components/responses/Unauthenticated" }
         }
+      },
+      "patch": {
+        "summary": "Update Authenticated User Profile",
+        "description": "Updates profile details and/or avatar. If uploading an avatar file, use multipart/form-data request body.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 2, "maxLength": 255 },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 },
+                  "password_confirmation": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string", "maxLength": 500 },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string", "enum": ["male", "female"] },
+                  "parent_name": { "type": "string" },
+                  "parent_phone": { "type": "string" }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "minLength": 2, "maxLength": 255 },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 },
+                  "password_confirmation": { "type": "string" },
+                  "phone": { "type": "string" },
+                  "address": { "type": "string", "maxLength": 500 },
+                  "date_of_birth": { "type": "string", "format": "date" },
+                  "gender": { "type": "string", "enum": ["male", "female"] },
+                  "parent_name": { "type": "string" },
+                  "parent_phone": { "type": "string" },
+                  "avatar_file": { "type": "string", "format": "binary", "description": "Profile picture" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Profile updated successfully" },
+                    "data": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthenticated" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
       }
     },
     "/api/v1/students": {
@@ -844,6 +907,24 @@
                   "evidence_url": { "type": "string", "format": "uri" }
                 }
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["student_id", "title", "type", "date"],
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "title": { "type": "string", "minLength": 3 },
+                  "description": { "type": "string" },
+                  "type": { "type": "string", "enum": ["competition", "sports", "arts", "volunteer", "other"] },
+                  "date": { "type": "string", "format": "date" },
+                  "location": { "type": "string" },
+                  "achievement": { "type": "string" },
+                  "points": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "evidence_url": { "type": "string", "format": "uri" },
+                  "evidence_file": { "type": "string", "format": "binary", "description": "Evidence file upload (jpeg, png, pdf, etc.)" }
+                }
+              }
             }
           }
         },
@@ -906,6 +987,82 @@
                   "achievement": { "type": "string" },
                   "points": { "type": "integer" },
                   "evidence_url": { "type": "string" }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["student_id", "title", "type", "date"],
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "type": { "type": "string", "enum": ["competition", "sports", "arts", "volunteer", "other"] },
+                  "date": { "type": "string", "format": "date" },
+                  "location": { "type": "string" },
+                  "achievement": { "type": "string" },
+                  "points": { "type": "integer" },
+                  "evidence_url": { "type": "string" },
+                  "evidence_file": { "type": "string", "format": "binary", "description": "Evidence file upload (jpeg, png, pdf, etc.)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Activity" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Partial Update Activity",
+        "parameters": [ { "$ref": "#/components/parameters/Id" } ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "type": { "type": "string", "enum": ["competition", "sports", "arts", "volunteer", "other"] },
+                  "date": { "type": "string", "format": "date" },
+                  "location": { "type": "string" },
+                  "achievement": { "type": "string" },
+                  "points": { "type": "integer" },
+                  "evidence_url": { "type": "string" }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "student_id": { "type": "integer" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "type": { "type": "string", "enum": ["competition", "sports", "arts", "volunteer", "other"] },
+                  "date": { "type": "string", "format": "date" },
+                  "location": { "type": "string" },
+                  "achievement": { "type": "string" },
+                  "points": { "type": "integer" },
+                  "evidence_url": { "type": "string" },
+                  "evidence_file": { "type": "string", "format": "binary", "description": "Evidence file upload (jpeg, png, pdf, etc.)" }
                 }
               }
             }
@@ -1378,6 +1535,12 @@
           "phone": { "type": "string", "nullable": true },
           "address": { "type": "string", "nullable": true },
           "avatar": { "type": "string", "nullable": true },
+          "date_of_birth": { "type": "string", "format": "date", "nullable": true },
+          "gender": { "type": "string", "enum": ["male", "female"], "nullable": true },
+          "parent_name": { "type": "string", "nullable": true },
+          "parent_phone": { "type": "string", "nullable": true },
+          "status": { "type": "string" },
+          "email_verified_at": { "type": "string", "format": "date-time", "nullable": true },
           "created_at": { "type": "string", "format": "date-time" },
           "updated_at": { "type": "string", "format": "date-time" }
         }
