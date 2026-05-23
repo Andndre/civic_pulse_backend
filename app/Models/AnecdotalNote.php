@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['student_id', 'teacher_id', 'content'])]
+#[Fillable(['student_id', 'teacher_id', 'content', 'category'])]
 class AnecdotalNote extends Model
 {
     use HasFactory;

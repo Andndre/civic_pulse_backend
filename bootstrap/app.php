@@ -1,7 +1,14 @@
 <?php
 
 use App\Http\Middleware\RoleMiddleware;
+use App\Models\ActivityLog;
+use App\Models\AnecdotalNote;
+use App\Models\LearningMaterial;
+use App\Models\SchoolClass;
+use App\Models\TestResponse;
+use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -47,22 +54,49 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 $message = 'Resource not found';
-                $path = $request->path();
+                $previous = $e->getPrevious();
 
-                if (str_contains($path, 'api/v1/students')) {
-                    $message = 'Student not found';
-                } elseif (str_contains($path, 'api/v1/teachers')) {
-                    $message = 'Teacher not found';
-                } elseif (str_contains($path, 'api/v1/classes')) {
-                    $message = 'Class not found';
-                } elseif (str_contains($path, 'api/v1/activities')) {
-                    $message = 'Activity not found';
-                } elseif (str_contains($path, 'api/v1/scores')) {
-                    $message = 'Score not found';
-                } elseif (str_contains($path, 'api/v1/materials')) {
-                    $message = 'Material not found';
-                } elseif (str_contains($path, 'api/v1/users')) {
-                    $message = 'User not found';
+                if ($previous instanceof ModelNotFoundException) {
+                    $modelClass = $previous->getModel();
+                    if ($modelClass === AnecdotalNote::class) {
+                        $message = 'Anecdotal note not found';
+                    } elseif ($modelClass === User::class) {
+                        $path = $request->path();
+                        if (str_contains($path, 'api/v1/students')) {
+                            $message = 'Student not found';
+                        } elseif (str_contains($path, 'api/v1/teachers')) {
+                            $message = 'Teacher not found';
+                        } else {
+                            $message = 'User not found';
+                        }
+                    } elseif ($modelClass === SchoolClass::class) {
+                        $message = 'Class not found';
+                    } elseif ($modelClass === ActivityLog::class) {
+                        $message = 'Activity not found';
+                    } elseif ($modelClass === TestResponse::class) {
+                        $message = 'Score not found';
+                    } elseif ($modelClass === LearningMaterial::class) {
+                        $message = 'Material not found';
+                    }
+                } else {
+                    $path = $request->path();
+                    if (str_contains($path, 'anecdotal-notes')) {
+                        $message = 'Anecdotal note not found';
+                    } elseif (str_contains($path, 'api/v1/students')) {
+                        $message = 'Student not found';
+                    } elseif (str_contains($path, 'api/v1/teachers')) {
+                        $message = 'Teacher not found';
+                    } elseif (str_contains($path, 'api/v1/classes')) {
+                        $message = 'Class not found';
+                    } elseif (str_contains($path, 'api/v1/activities')) {
+                        $message = 'Activity not found';
+                    } elseif (str_contains($path, 'api/v1/scores')) {
+                        $message = 'Score not found';
+                    } elseif (str_contains($path, 'api/v1/materials')) {
+                        $message = 'Material not found';
+                    } elseif (str_contains($path, 'api/v1/users')) {
+                        $message = 'User not found';
+                    }
                 }
 
                 return response()->json([

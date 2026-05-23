@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\AnecdotalNoteController;
 use App\Http\Controllers\Api\ClassController;
 use App\Http\Controllers\Api\LearningMaterialController;
 use App\Http\Controllers\Api\ScoreController;
@@ -39,6 +40,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
         // Students CRUD, Restore
         Route::post('/students/{student}/restore', [StudentController::class, 'restore']);
+        Route::apiResource('students.anecdotal-notes', AnecdotalNoteController::class)->middleware('role:teacher,admin');
         Route::apiResource('students', StudentController::class);
 
         // Teachers CRUD
