@@ -72,7 +72,7 @@ class MaterialResource extends JsonResource
             'grade' => $this->grade,
             'grade_category' => $this->grade >= 10 ? 'SMA' : 'SMP',
             'grade_level' => $this->grade,
-            'file_url' => $this->file_url,
+            'file_url' => $this->file_url ? asset($this->file_url) : null,
             'created_by' => $this->created_by,
             'creator_name' => $this->creator?->name,
             'status' => $learningPathStatus['pulse'] === 'completed' ? 'completed' : 'available',
