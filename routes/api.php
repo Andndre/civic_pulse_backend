@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::patch('/users/me', [UserController::class, 'update']);
 
         // Students CRUD, Restore
+        Route::get('/dashboard/analytics', [StudentController::class, 'getAnalytics']);
         Route::post('/students/{student}/restore', [StudentController::class, 'restore']);
         Route::apiResource('students.anecdotal-notes', AnecdotalNoteController::class)->middleware('role:teacher,admin');
         Route::apiResource('students', StudentController::class);

@@ -133,5 +133,12 @@ class StudentFeaturesTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.learning_path_status.pulse', 'completed')
             ->assertJsonPath('data.status', 'completed');
+
+        // 11. Test getAnalytics
+        $response = $this->getJson('/api/v1/dashboard/analytics');
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pulse_scores.participation', 5)
+            ->assertJsonPath('data.pulse_scores.understanding', 0);
     }
 }

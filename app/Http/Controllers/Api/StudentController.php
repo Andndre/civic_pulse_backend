@@ -11,6 +11,7 @@ use App\Models\SchoolClass;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
@@ -220,6 +221,43 @@ class StudentController extends Controller
                 'id' => $student->id,
                 'deleted_at' => null,
                 'restored_at' => now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get student analytics (PULSE scores) for dashboard.
+     */
+    public function getAnalytics(Request $request): JsonResponse
+    {
+        $studentId = $request->user()->id;
+
+        // Ambil semua jawaban PULSE milik siswa beserta dimensi dari instrumennya
+        $responses = DB::table('pulse_responses')
+            ->join('pulse_instruments', 'pulse_responses.pulse_instrument_id', '=', 'pulse_instruments.id')
+            ->where('pulse_responses.student_id', $studentId)
+            ->select('pulse_instruments.dimension', 'pulse_responses.score')
+            ->get();
+
+        // Kelompokkan berdasarkan dimensi (P, U, L, SE)
+        $grouped = $responses->groupBy('dimension');
+
+        // Hitung rata-rata skor per dimensi (jika belum ada data, default 0.0)
+        $p = isset($grouped['P']) ? $grouped['P']->avg('score') : 0.0;
+        $u = isset($grouped['U']) ? $grouped['U']->avg('score') : 0.0;
+        $l = isset($grouped['L']) ? $grouped['L']->avg('score') : 0.0;
+        $se = isset($grouped['SE']) ? $grouped['SE']->avg('score') : 0.0;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student analytics retrieved successfully',
+            'data' => [
+                'pulse_scores' => [
+                    'participation' => (float) $p,
+                    'understanding' => (float) $u,
+                    'learning' => (float) $l,
+                    'social_engagement' => (float) $se,
+                ],
             ],
         ]);
     }
