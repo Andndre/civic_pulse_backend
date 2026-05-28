@@ -25,15 +25,15 @@ class UpdateMaterialRequest extends FormRequest
         $rules = [
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
-            'grade' => 'sometimes|required|integer',
-            'file_url' => 'sometimes|required|url',
+            'grade' => 'sometimes|required|integer|between:7,12',
+            'file' => 'sometimes|required|file|mimes:pdf|max:51200', // Max 50MB
         ];
 
         if ($this->isMethod('PUT')) {
             $rules['title'] = 'required|string|max:255';
             $rules['description'] = 'required|string';
-            $rules['grade'] = 'required|integer';
-            $rules['file_url'] = 'required|url';
+            $rules['grade'] = 'required|integer|between:7,12';
+            $rules['file'] = 'sometimes|required|file|mimes:pdf|max:51200'; // Make file optional on update PUT too to allow updating other text fields without re-uploading file.
         }
 
         return $rules;

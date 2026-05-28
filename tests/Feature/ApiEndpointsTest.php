@@ -448,11 +448,13 @@ class ApiEndpointsTest extends TestCase
         Sanctum::actingAs($teacher);
 
         // 1. Create Material
+        $file = UploadedFile::fake()->create('civics-intro.pdf', 500, 'application/pdf');
+
         $storeResponse = $this->postJson('/api/v1/materials', [
             'title' => 'Introduction to Civics',
             'description' => 'Basics of government structures.',
             'grade' => 10,
-            'file_url' => 'https://example.com/civics-intro.pdf',
+            'file' => $file,
         ]);
 
         $storeResponse->assertStatus(201)
@@ -461,11 +463,13 @@ class ApiEndpointsTest extends TestCase
         $materialId = $storeResponse->json('data.id');
 
         // 2. Update Material
+        $newFile = UploadedFile::fake()->create('civics-intro-updated.pdf', 500, 'application/pdf');
+
         $updateResponse = $this->putJson("/api/v1/materials/{$materialId}", [
             'title' => 'Introduction to Civics Updated',
             'description' => 'Basics of government structures.',
             'grade' => 10,
-            'file_url' => 'https://example.com/civics-intro.pdf',
+            'file' => $newFile,
         ]);
         $updateResponse->assertStatus(200)
             ->assertJsonPath('data.title', 'Introduction to Civics Updated');

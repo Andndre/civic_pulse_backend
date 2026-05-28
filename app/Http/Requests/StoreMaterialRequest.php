@@ -25,8 +25,8 @@ class StoreMaterialRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'grade' => 'required|integer',
-            'file_url' => 'required|url',
+            'grade' => 'required|integer|between:7,12',
+            'file' => 'required|file|mimes:pdf|max:51200', // Max 50MB
         ];
     }
 }

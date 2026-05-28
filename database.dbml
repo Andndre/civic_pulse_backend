@@ -1,0 +1,216 @@
+// Civic Pulse Database Schema in DBML
+
+Table users {
+  id bigint [primary key, increment]
+  name varchar
+  email varchar [unique]
+  email_verified_at timestamp [null]
+  password varchar
+  role varchar [default: "student", note: "e.g., student, teacher, admin"]
+  phone varchar [null]
+  address varchar(500) [null]
+  avatar varchar [null]
+  date_of_birth date [null]
+  gender enum [null, note: "male, female"]
+  parent_name varchar [null]
+  parent_phone varchar [null]
+  status enum [default: "active", note: "active, inactive, locked"]
+  remember_token varchar [null]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null, note: "Soft deletes"]
+}
+
+Table password_reset_tokens {
+  email varchar [primary key]
+  token varchar
+  created_at timestamp [null]
+}
+
+Table sessions {
+  id varchar [primary key]
+  user_id bigint [null]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  payload longtext
+  last_activity integer
+}
+
+Table personal_access_tokens {
+  id bigint [primary key, increment]
+  tokenable_type varchar
+  tokenable_id bigint
+  name varchar
+  token varchar(64) [unique]
+  abilities text [null]
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table classes {
+  id bigint [primary key, increment]
+  name varchar
+  grade integer
+  homeroom_teacher_id bigint [null]
+  class_code varchar [unique]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+
+  indexes {
+    (id, grade) [unique]
+  }
+}
+
+Table class_student {
+  id bigint [primary key, increment]
+  student_id bigint
+  class_id bigint
+  grade integer
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    (student_id, grade) [unique]
+  }
+}
+
+Table learning_materials {
+  id bigint [primary key, increment]
+  title varchar
+  description text
+  grade integer
+  file_url varchar
+  created_by bigint
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+}
+
+Table pulse_instruments {
+  id bigint [primary key, increment]
+  learning_material_id bigint
+  dimension enum [note: "P, U, L, SE"]
+  statement text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table questions {
+  id bigint [primary key, increment]
+  learning_material_id bigint
+  type enum [note: "pre_test, post_test"]
+  question_text text
+  options json
+  correct_answer varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table pulse_responses {
+  id bigint [primary key, increment]
+  student_id bigint
+  pulse_instrument_id bigint
+  score integer [note: "Likert scale 1-5"]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table test_responses {
+  id bigint [primary key, increment]
+  student_id bigint
+  learning_material_id bigint
+  type enum [note: "pre_test, post_test"]
+  score integer
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table aggregated_scores {
+  id bigint [primary key, increment]
+  student_id bigint
+  class_id bigint
+  period_start date
+  period_end date
+  period_type enum [note: "weekly, monthly, semester"]
+  avg_cognitive_score decimal(5,2) [default: 0.00]
+  pulse_p_score decimal(5,2) [default: 0.00]
+  pulse_u_score decimal(5,2) [default: 0.00]
+  pulse_l_score decimal(5,2) [default: 0.00]
+  pulse_se_score decimal(5,2) [default: 0.00]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table anecdotal_notes {
+  id bigint [primary key, increment]
+  student_id bigint
+  teacher_id bigint
+  content text
+  category varchar [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table audit_logs {
+  id bigint [primary key, increment]
+  user_id bigint [null]
+  action_type varchar
+  description text
+  ip_address varchar(45) [null]
+  user_agent varchar(500) [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table activity_logs {
+  id bigint [primary key, increment]
+  student_id bigint
+  title varchar
+  description text [null]
+  type varchar [note: "competition, sports, arts, volunteer, other"]
+  date date
+  location varchar [null]
+  achievement varchar [null]
+  points integer [default: 0]
+  evidence_url varchar [null]
+  status enum [default: "pending", note: "pending, approved, rejected"]
+  review_notes text [null]
+  reviewed_by bigint [null]
+  reviewed_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp [null]
+}
+
+// Relationships & Foreign Keys
+Ref: classes.homeroom_teacher_id > users.id [delete: set null]
+Ref: class_student.student_id > users.id [delete: cascade]
+Ref: class_student.(class_id, grade) > classes.(id, grade) [delete: cascade]
+
+Ref: learning_materials.created_by > users.id
+
+Ref: pulse_instruments.learning_material_id > learning_materials.id [delete: cascade]
+
+Ref: questions.learning_material_id > learning_materials.id [delete: cascade]
+
+Ref: pulse_responses.student_id > users.id [delete: cascade]
+Ref: pulse_responses.pulse_instrument_id > pulse_instruments.id [delete: cascade]
+
+Ref: test_responses.student_id > users.id [delete: cascade]
+Ref: test_responses.learning_material_id > learning_materials.id [delete: cascade]
+
+Ref: aggregated_scores.student_id > users.id [delete: cascade]
+Ref: aggregated_scores.class_id > classes.id [delete: cascade]
+
+Ref: anecdotal_notes.student_id > users.id [delete: cascade]
+Ref: anecdotal_notes.teacher_id > users.id [delete: cascade]
+
+Ref: audit_logs.user_id > users.id [delete: set null]
+
+Ref: activity_logs.student_id > users.id [delete: cascade]
+Ref: activity_logs.reviewed_by > users.id [delete: set null]
+
+Ref: sessions.user_id > users.id
